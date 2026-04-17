@@ -751,7 +751,7 @@ window.toggleBlacksmithWindow = function() {
     }
 };
 
-// [20] 3단계: 부위별 상세 정보 렌더링 (진무 신발 이미지 이슈 해결 버전)
+// [20] 3단계: 부위별 상세 정보 렌더링
 function showPartDetail(itemName, itemData, parts, parentGrid, isAutoOpen) {
     const partArea = parentGrid.nextElementSibling;
     if (!partArea) return;
@@ -781,7 +781,7 @@ function showPartDetail(itemName, itemData, parts, parentGrid, isAutoOpen) {
         const partIcon = document.createElement('div');
         partIcon.className = 'game-item-box'; 
         
-        // --- 이미지 경로 안전 로직 ---
+        // --- 진무 신발 등 이미지 예외 처리 ---
         let imgName = (partSpecificData && partSpecificData.file) 
             ? partSpecificData.file 
             : (itemName + part + ".png");
@@ -792,6 +792,8 @@ function showPartDetail(itemName, itemData, parts, parentGrid, isAutoOpen) {
                  style="width:85%; height:85%; object-fit:contain; position:relative; z-index:2;">
             <div style="position:absolute; color:#444; font-size:9px; z-index:1;">${part}</div>
         `;
+
+        // ... (나머지 코드는 동일하게 유지)
 
         const partName = document.createElement('div');
         partName.className = 'game-item-name';
