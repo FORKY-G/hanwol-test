@@ -60,7 +60,7 @@ const luckyEquipment = [allEquipmentNames[Math.floor(seededRandom(equipmentSeed)
 // [검증 암호 생성 함수 수정] - 소요 시간 포함 버전
 function generateVerifyCode(foundList) {
     // 1. 유저 식별을 위해 닉네임 입력
-    const userName = prompt("검증 코드 발급을 위해 마인크래프트 닉네임을 입력해주세요.            해당 팝업창이 사라지면 다시 찾으셔야 하니 마우스를 다른 곳에 클릭하지 않도록 주의하세요!", "");
+    const userName = prompt("검증 코드 발급을 위해 마인크래프트 닉네임을 입력해주세요.                  해당 팝업창이 사라지면 다시 찾으셔야 하니 마우스를 다른 곳에 클릭하지 않도록 주의하세요!", "");
     if (!userName) return "닉네임 미입력";
 
     // 2. 소요 시간 계산 (초 단위)
