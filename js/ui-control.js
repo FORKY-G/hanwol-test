@@ -490,19 +490,16 @@ npcData.forEach((npc) => {
         });
     }
 
-    const marker = L.marker(mcToPx(npc.x, npc.z), { icon: currentIcon }).addTo(layers.npc);
+    const marker = L.marker(pos, { icon: currentIcon }).addTo(layers.npc);
 
     let craftHtml = '';
     if (npc.crafting && npc.crafting.length > 0) {
-        // ID 생성 시 공백과 특수문자를 제거해서 안전하게 만듭니다.
-        const safeNpcId = npc.name.replace(/[^a-zA-Z0-9가-힣]/g, '');
-        
         craftHtml = `
             <div style="margin-top:10px; border-top:2px solid #000; padding-top:10px;">
                 <div style="font-weight:900; font-size:13px; color:#000; margin-bottom:8px; text-align:left;">[제작 아이템 목록]</div>
                 <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; background:#333; padding:4px; border:1px solid #000;">
                     ${npc.crafting.map((item, index) => `
-                        <div onclick="showRecipe(event, '${npc.name}', ${index})" 
+                        <div onclick="showRecipe('${npc.name}', ${index})" 
                              style="aspect-ratio: 1/1; background:#1a1a1a; border:1px solid #555; cursor:pointer; display:flex; align-items:center; justify-content:center;"
                              onmouseover="this.style.border='1px solid #ffd700'" 
                              onmouseout="this.style.border='1px solid #555'">
@@ -510,7 +507,7 @@ npcData.forEach((npc) => {
                         </div>
                     `).join('')}
                 </div>
-                <div id="recipe-display-${safeNpcId}" style="margin-top:8px; padding:10px; background:#eee; border:1px solid #000; font-size:12px; font-weight:700; display:none; color:#000; text-align:left; line-height:1.4;">
+                <div id="recipe-display-${npc.name.replace(/\s+/g, '')}" style="margin-top:8px; padding:10px; background:#eee; border:1px solid #000; font-size:12px; font-weight:700; display:none; color:#000; text-align:left; line-height:1.4;">
                 </div>
             </div>
         `;
@@ -550,14 +547,22 @@ npcData.forEach((npc) => {
             <div style="font-size:18px; font-weight:800; border-bottom:2px solid #000; padding: 5px 0; margin-bottom: 10px;">
                 ${npc.name}${npc.lv ? `<span style="font-size:12px; color:#666; font-weight:normal;"> (lv.${npc.lv})</span>` : ''}
             </div>
+            
             <div style="background:#333; border-radius:4px; padding: 6px 0; margin-bottom: 10px; cursor:pointer;" onclick="copyCoords(${npc.x}, ${npc.y}, ${npc.z})">
                 <div style="color:#FFD700; font-size:15px; font-weight:700;">${npc.x}, ${npc.y}, ${npc.z}</div>
                 <div style="color:#aaa; font-size:9px;">(위치 복사)</div>
             </div>
+
             <div style="text-align:left; font-size:12px; color:#333;">
                 ${npc.quest ? `<div><span style="color:#d00; font-weight:800;">[퀘스트]</span> ${npc.quest}</div>` : ''}
+                ${npc.item ? `<div><span style="color:#007bff; font-weight:800;">[필요재료]</span> ${npc.item}</div>` : ''}
                 ${npc.materials ? `<div style="margin-top:8px; padding:8px; background:#f4faff; border:1px solid #cce5ff; border-radius:4px; color:#004085;"><span style="font-weight:800;">[제작재료]</span><br>${npc.materials}</div>` : ''}
-                ${craftHtml}
+                
+                ${craftHtml} ${npc.route ? `<div><span style="color:#28a745; font-weight:800;">[동선]</span> ${npc.route}</div>` : ''}
+                ${npc.reward ? `<div><span style="color:#f39c12; font-weight:800;">[보상]</span> ${npc.reward}</div>` : ''}
+                ${npc.memo ? `<div style="margin-top:6px; border-top:1px dashed #ccc; padding-top:6px; color:#666; font-size:11px;">※ ${npc.memo}</div>` : ''}
+                ${recordsHtml}
+                ${videoHtml}
             </div>
             ${pokiTag}
         </div>
@@ -877,39 +882,31 @@ function showPartDetail(itemName, itemData, parts, parentGrid, isAutoOpen) {
     `;
 
     parts.forEach(part => {
-    // 1. 데이터 가져오기 (방어구면 부위별 데이터, 무기/장신구면 전체 데이터)
-    const partSpecificData = (parts[0] === "무기" || parts[0] === "스텟") ? itemData : itemData[part];
-    
-    if (!partSpecificData) return; // 데이터가 없으면 패스
+        const partSpecificData = (parts[0] === "무기" || parts[0] === "스텟") ? itemData : itemData[part];
+        const partContainer = document.createElement('div');
+        partContainer.style.cssText = 'display: flex; flex-direction: column; align-items: center; cursor: pointer;';
 
-    const partContainer = document.createElement('div');
-    partContainer.style.cssText = 'display: flex; flex-direction: column; align-items: center; cursor: pointer;';
+        const partIcon = document.createElement('div');
+        partIcon.className = 'game-item-box'; 
+        
+        // --- [수정 포인트: 이미지 경로 최적화] ---
+        let imgName = "";
+        if (partSpecificData && partSpecificData.file) {
+            imgName = partSpecificData.file;
+        } else if (parts[0] === "스텟") {
+            // 장신구의 경우 "스텟.png"를 찾는 대신 "반지1.png" 처럼 아이템 이름을 쓰게 유도
+            imgName = `${itemName}.png`; 
+        } else {
+            imgName = `${itemName}${part}.png`;
+        }
 
-    const partIcon = document.createElement('div');
-    partIcon.className = 'game-item-box'; 
-    
-    // [수정 포인트] 이미지 경로 결정 우선순위
-    let imgName = "";
-    
-    // 1순위: 데이터에 직접 "file"이 적혀있는 경우 (예: "110lvshoes5.png")
-    if (partSpecificData.file) {
-        imgName = partSpecificData.file;
-    } 
-    // 2순위: 장신구(스텟)인데 파일명이 없을 때
-    else if (parts[0] === "스텟") {
-        imgName = `${itemName}.png`;
-    } 
-    // 3순위: 일반적인 방어구 규칙 (아이템이름 + 부위)
-    else {
-        imgName = `${itemName}${part}.png`;
-    }
-
-    partIcon.innerHTML = `
-        <img src="images/${imgName}" 
-             onerror="this.src='images/${part === '스텟' ? '장신구' : part}.png'; this.onerror=null;" 
-             style="width:85%; height:85%; object-fit:contain; position:relative; z-index:2;">
-        <div style="position:absolute; color:#444; font-size:9px; z-index:1; bottom:2px;">${part}</div>
-    `;
+        partIcon.innerHTML = `
+            <img src="images/${imgName}" 
+                 onerror="this.src='images/${part === '스텟' ? '장신구' : part}.png'; this.onerror=null; if(!this.src.includes('.png')) this.style.display='none';" 
+                 style="width:85%; height:85%; object-fit:contain; position:relative; z-index:2;">
+            <div style="position:absolute; color:#444; font-size:9px; z-index:1;">${part}</div>
+        `;
+        // ----------------------------------------
 
         const partName = document.createElement('div');
         partName.className = 'game-item-name';
@@ -1173,10 +1170,7 @@ map.on('popupopen', e => {
     if (rect.top < mapRect.top + 60) container.style.transform += " translateY(" + (rect.height + 40) + "px)";
 });
 
-window.showRecipe = function(e, npcName, index) {
-    // [추가] 클릭 이벤트가 지도 팝업을 닫지 않도록 방지
-    if (e && e.stopPropagation) e.stopPropagation();
-
+window.showRecipe = function(npcName, index) {
     // NPC 데이터에서 해당 NPC 찾기
     const npc = npcData.find(n => n.name === npcName);
     // 공백을 제거한 ID 생성
@@ -1186,6 +1180,7 @@ window.showRecipe = function(e, npcName, index) {
     if (npc && npc.crafting && npc.crafting[index] && displayDiv) {
         const item = npc.crafting[index];
         
+        // 재료 정보를 화면에 표시
         displayDiv.style.display = 'block';
         displayDiv.innerHTML = `
             <div style="border:1px solid #d4af37; background:#fff; padding:10px; border-radius:4px; margin-top:10px;">
@@ -1198,6 +1193,7 @@ window.showRecipe = function(e, npcName, index) {
             </div>
         `;
         
+        // [수정 완료] 팝업 위치만 새로고침 하여 창이 닫히지 않게 함
         const openPopup = map._popup; 
         if (openPopup) {
             openPopup.update(); 
