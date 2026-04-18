@@ -97,7 +97,7 @@ function showVictoryModal(code) {
     `;
     modal.innerHTML = `
         <h2 style="color:#d4af37; margin-top:0;">🎉 포키 10마리 검거 완료! 🎉</h2>
-        <p style="font-size:13px; color:#b0a59a;">아래 검증 코드를 캡처해서 다겸님께 보내주세요.</p>
+        <p style="font-size:13px; color:#b0a59a;">아래 검증 코드를 캡처해서 포키에게 보내주세요.</p>
         <div style="background:#000; padding:15px; margin:20px 0; border:1px dashed #c5a368;">
             <span style="font-size:26px; font-weight:bold; letter-spacing:3px; color:#fff;">${code}</span>
         </div>
