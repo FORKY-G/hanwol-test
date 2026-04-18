@@ -810,7 +810,7 @@ window.toggleBlacksmithWindow = function() {
     }
 };
 
-// [20] 3단계: 부위별 상세 정보 렌더링
+// [20] 3단계: 부위별 상세 정보 렌더링 (이미지 에러 완벽 방어 버전)
 function showPartDetail(itemName, itemData, parts, parentGrid, isAutoOpen) {
     const partArea = parentGrid.nextElementSibling;
     if (!partArea) return;
@@ -840,14 +840,24 @@ function showPartDetail(itemName, itemData, parts, parentGrid, isAutoOpen) {
         const partIcon = document.createElement('div');
         partIcon.className = 'game-item-box'; 
         
-        let imgName = (partSpecificData && partSpecificData.file) ? partSpecificData.file : (itemName + part + ".png");
+        // --- [수정 포인트: 이미지 경로 최적화] ---
+        let imgName = "";
+        if (partSpecificData && partSpecificData.file) {
+            imgName = partSpecificData.file;
+        } else if (parts[0] === "스텟") {
+            // 장신구의 경우 "스텟.png"를 찾는 대신 "반지1.png" 처럼 아이템 이름을 쓰게 유도
+            imgName = `${itemName}.png`; 
+        } else {
+            imgName = `${itemName}${part}.png`;
+        }
 
         partIcon.innerHTML = `
             <img src="images/${imgName}" 
-                 onerror="this.src='images/${part}.png'; this.onerror=function(){this.style.display='none'};" 
+                 onerror="this.src='images/${part === '스텟' ? '장신구' : part}.png'; this.onerror=null; if(!this.src.includes('.png')) this.style.display='none';" 
                  style="width:85%; height:85%; object-fit:contain; position:relative; z-index:2;">
             <div style="position:absolute; color:#444; font-size:9px; z-index:1;">${part}</div>
         `;
+        // ----------------------------------------
 
         const partName = document.createElement('div');
         partName.className = 'game-item-name';
@@ -858,6 +868,9 @@ function showPartDetail(itemName, itemData, parts, parentGrid, isAutoOpen) {
 
         const openSpec = () => {
             if (partSpecificData) {
+                // 당첨 확인용 이름 (무기/장신구는 이름만, 방어구는 세트+부위)
+                const fullPartName = (parts[0] === "무기" || parts[0] === "스텟") ? itemName : `${itemName} ${part}`;
+
                 fixedSpecBox.innerHTML = `
                     <div style="margin-bottom:8px;">
                         <div style="color:#d4af37; font-weight:900; font-size:13px;">[스텟]</div>
@@ -871,12 +884,11 @@ function showPartDetail(itemName, itemData, parts, parentGrid, isAutoOpen) {
                     ` : ''}
                 `;
                 
-                // [수정된 로직!] 클릭할 때마다 랜덤이 아니라, 미리 뽑힌 당첨 리스트에 있는지 확인
-                if (luckyEquipment.includes(itemName)) {
+                if (luckyEquipment.includes(fullPartName)) {
                     fixedSpecBox.insertAdjacentHTML('beforeend', `
-                        <div style="margin-top:12px; border-top:1px dashed #5e4b3c; padding-top:10px; text-align:center;">
-                            <img src="images/forky.png" style="width:25px; border:1px solid #d4af37; background:#000; padding:2px;">
-                            <div style="font-size:10px; color:#d4af37; margin-top:5px; font-weight:900;">포키 발견!</div>
+                        <div style="text-align:center; margin-top:12px; border-top:1px dashed #5e4b3c; padding-top:10px;">
+                            <img src="images/forky.png" style="width:25px; border:1px solid #d4af37; background:#000; padding:2px; cursor:pointer;" onclick="collectPoki('${fullPartName}')">
+                            <div style="font-size:10px; color:#d4af37; margin-top:5px; font-weight:900;">포키 발견! (클릭)</div>
                         </div>
                     `);
                 }
