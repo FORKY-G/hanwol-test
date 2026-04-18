@@ -490,16 +490,19 @@ npcData.forEach((npc) => {
         });
     }
 
-    const marker = L.marker(pos, { icon: currentIcon }).addTo(layers.npc);
+    const marker = L.marker(mcToPx(npc.x, npc.z), { icon: currentIcon }).addTo(layers.npc);
 
     let craftHtml = '';
     if (npc.crafting && npc.crafting.length > 0) {
+        // ID 생성 시 공백과 특수문자를 제거해서 안전하게 만듭니다.
+        const safeNpcId = npc.name.replace(/[^a-zA-Z0-9가-힣]/g, '');
+        
         craftHtml = `
             <div style="margin-top:10px; border-top:2px solid #000; padding-top:10px;">
                 <div style="font-weight:900; font-size:13px; color:#000; margin-bottom:8px; text-align:left;">[제작 아이템 목록]</div>
                 <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; background:#333; padding:4px; border:1px solid #000;">
                     ${npc.crafting.map((item, index) => `
-                        <div onclick="event.stopPropagation(); showRecipe('${npc.name}', ${index})" 
+                        <div onclick="showRecipe(event, '${npc.name}', ${index})" 
                              style="aspect-ratio: 1/1; background:#1a1a1a; border:1px solid #555; cursor:pointer; display:flex; align-items:center; justify-content:center;"
                              onmouseover="this.style.border='1px solid #ffd700'" 
                              onmouseout="this.style.border='1px solid #555'">
@@ -507,7 +510,7 @@ npcData.forEach((npc) => {
                         </div>
                     `).join('')}
                 </div>
-                <div id="recipe-display-${npc.name.replace(/\s+/g, '')}" style="margin-top:8px; padding:10px; background:#eee; border:1px solid #000; font-size:12px; font-weight:700; display:none; color:#000; text-align:left; line-height:1.4;">
+                <div id="recipe-display-${safeNpcId}" style="margin-top:8px; padding:10px; background:#eee; border:1px solid #000; font-size:12px; font-weight:700; display:none; color:#000; text-align:left; line-height:1.4;">
                 </div>
             </div>
         `;
@@ -562,7 +565,6 @@ npcData.forEach((npc) => {
 
     marker.bindPopup(popupContent, { autoPan: true, keepInView: true, closeButton: false, offset: L.point(0, -5) });
 });
-
 
 // [14] 사냥터 영역 및 마커 생성 (랜덤 포키 적용)
 const huntingImageBounds = [[0, 0], [7300, 7300]]; 
@@ -875,29 +877,39 @@ function showPartDetail(itemName, itemData, parts, parentGrid, isAutoOpen) {
     `;
 
     parts.forEach(part => {
-        const partSpecificData = (parts[0] === "무기" || parts[0] === "스텟") ? itemData : itemData[part];
-        
-        // 데이터가 아예 없는지 확인
-        if (!partSpecificData) {
-            console.error(`${itemName}의 ${part} 데이터가 없습니다!`);
-            return; 
-        }
+    // 1. 데이터 가져오기 (방어구면 부위별 데이터, 무기/장신구면 전체 데이터)
+    const partSpecificData = (parts[0] === "무기" || parts[0] === "스텟") ? itemData : itemData[part];
+    
+    if (!partSpecificData) return; // 데이터가 없으면 패스
 
-        const partContainer = document.createElement('div');
-        partContainer.style.cssText = 'display: flex; flex-direction: column; align-items: center; cursor: pointer;';
+    const partContainer = document.createElement('div');
+    partContainer.style.cssText = 'display: flex; flex-direction: column; align-items: center; cursor: pointer;';
 
-        const partIcon = document.createElement('div');
-        partIcon.className = 'game-item-box'; 
-        
-        // 이미지 경로 생성 및 오타 방지 로직
-        let imgName = (partSpecificData.file) ? partSpecificData.file : `${itemName}${part}.png`;
+    const partIcon = document.createElement('div');
+    partIcon.className = 'game-item-box'; 
+    
+    // [수정 포인트] 이미지 경로 결정 우선순위
+    let imgName = "";
+    
+    // 1순위: 데이터에 직접 "file"이 적혀있는 경우 (예: "110lvshoes5.png")
+    if (partSpecificData.file) {
+        imgName = partSpecificData.file;
+    } 
+    // 2순위: 장신구(스텟)인데 파일명이 없을 때
+    else if (parts[0] === "스텟") {
+        imgName = `${itemName}.png`;
+    } 
+    // 3순위: 일반적인 방어구 규칙 (아이템이름 + 부위)
+    else {
+        imgName = `${itemName}${part}.png`;
+    }
 
-        partIcon.innerHTML = `
-            <img src="images/${imgName}" 
-                 onerror="this.src='images/${part}.png'; this.onerror=null;" 
-                 style="width:85%; height:85%; object-fit:contain; position:relative; z-index:2;">
-            <div style="position:absolute; color:#444; font-size:9px; z-index:1; bottom: 2px;">${part}</div>
-        `;
+    partIcon.innerHTML = `
+        <img src="images/${imgName}" 
+             onerror="this.src='images/${part === '스텟' ? '장신구' : part}.png'; this.onerror=null;" 
+             style="width:85%; height:85%; object-fit:contain; position:relative; z-index:2;">
+        <div style="position:absolute; color:#444; font-size:9px; z-index:1; bottom:2px;">${part}</div>
+    `;
 
         const partName = document.createElement('div');
         partName.className = 'game-item-name';
