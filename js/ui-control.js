@@ -14,7 +14,7 @@ for (let i = allPokiCandidates.length - 1; i > 0; i--) {
     [allPokiCandidates[i], allPokiCandidates[j]] = [allPokiCandidates[j], allPokiCandidates[i]];
 }
 // 상위 10개 좌표만 저장
-const luckyPokiCoords = allPokiCandidates.slice(0, 7).map(c => `${c.x},${c.z}`);
+const luckyPokiCoords = allPokiCandidates.slice(0, 8).map(c => `${c.x},${c.z}`);
 
 // 포키 태그 출력 함수
 const getPokiTag = (x, z) => {
@@ -655,10 +655,12 @@ function moveToLocation(target) {
     }, 600);
 }
 
-// [18] 비급 정보 제어 기능 (동일)
+// [18] 비급 정보 제어 기능
 window.toggleSkillWindow = function() {
     const win = document.getElementById('skill-window');
-    const blacksmithWin = document.getElementById('blacksmith-window');
+    // 만약 blacksmithWin을 안 쓰기로 하셨다면 아래 줄은 주석 처리하거나 지워도 됩니다.
+    const blacksmithWin = document.getElementById('blacksmith-window'); 
+    
     if (!win) return;
 
     if (win.style.display === 'none' || win.style.display === '') {
@@ -678,6 +680,8 @@ window.renderSkillList = function() {
         const imageTag = skill.image 
             ? `<img src="${skill.image}" style="width:100%; border-radius:4px; margin-top:8px; border:1px solid #5e4b3c; display:block;">` 
             : '';
+
+        // 에러 원인이었던 ${pokiTag}를 삭제하고 깔끔하게 정리했습니다.
         return `
             <div style="margin-bottom: 20px; border-bottom: 1px solid #3d3129; padding-bottom: 15px;">
                 <div style="font-weight: 900; color: #c5a368; font-size: 15px; margin-bottom: 8px; display: flex; align-items: center;">
@@ -688,12 +692,12 @@ window.renderSkillList = function() {
                     ${skill.info}
                 </div>
                 ${imageTag}
-                ${pokiTag}
             </div>
         `;
     }).join('');
 };
 
+// 버튼 클릭 이벤트 연결
 const skillBtn = document.getElementById('skill-btn');
 if (skillBtn) {
     skillBtn.addEventListener('click', toggleSkillWindow);
