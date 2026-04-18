@@ -1172,17 +1172,18 @@ map.on('popupopen', e => {
     if (rect.top < mapRect.top + 60) container.style.transform += " translateY(" + (rect.height + 40) + "px)";
 });
 
-window.showRecipe = function(npcName, index) {
-    // NPC 데이터에서 해당 NPC 찾기
+window.showRecipe = function(event, npcName, index) {
+    // 1. 클릭 이벤트 전파 차단 (가장 중요)
+    if (event) {
+        event.stopPropagation();
+    }
+
     const npc = npcData.find(n => n.name === npcName);
-    // 공백을 제거한 ID 생성
-    const displayId = `recipe-display-${npcName.replace(/\s+/g, '')}`;
-    const displayDiv = document.getElementById(displayId);
+    const safeId = npcName.replace(/[^a-zA-Z0-9가-힣]/g, '');
+    const displayDiv = document.getElementById(`recipe-display-${safeId}`);
 
     if (npc && npc.crafting && npc.crafting[index] && displayDiv) {
         const item = npc.crafting[index];
-        
-        // 재료 정보를 화면에 표시
         displayDiv.style.display = 'block';
         displayDiv.innerHTML = `
             <div style="border:1px solid #d4af37; background:#fff; padding:10px; border-radius:4px; margin-top:10px;">
@@ -1195,7 +1196,6 @@ window.showRecipe = function(npcName, index) {
             </div>
         `;
         
-        // [수정 완료] 팝업 위치만 새로고침 하여 창이 닫히지 않게 함
         const openPopup = map._popup; 
         if (openPopup) {
             openPopup.update(); 
